@@ -39,10 +39,11 @@ MAX_HISTORY = 10
 # VALIDASI
 # ========================================
 
-
-
 if not TELEGRAM_TOKEN:
     raise RuntimeError("TELEGRAM_TOKEN tidak ditemukan! Set di Railway Variables.")
+
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY tidak ditemukan! Set di Railway Variables.")
 
 # ========================================
 # INISIALISASI
@@ -110,14 +111,19 @@ async def balas_pesan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(balasan)
 
 # ========================================
-# SETUP TELEGRAM
+# SETUP TELEGRAM & EVENT LOOP PERMANEN
 # ========================================
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 app_telegram = Application.builder().token(TELEGRAM_TOKEN).build()
 app_telegram.add_handler(CommandHandler("start", start))
 app_telegram.add_handler(CommandHandler("reset", reset))
 app_telegram.add_handler(CommandHandler("bantuan", bantuan))
 app_telegram.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, balas_pesan))
+
+loop.run_until_complete(app_telegram.initialize())
 
 # ========================================
 # FLASK
@@ -132,16 +138,8 @@ def home():
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json(force=True)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        async def process():
-            await app_telegram.initialize()
-            update = Update.de_json(data, app_telegram.bot)
-            await app_telegram.process_update(update)
-        loop.run_until_complete(process())
-    finally:
-        loop.close()
+    update = Update.de_json(data, app_telegram.bot)
+    loop.run_until_complete(app_telegram.process_update(update))
     return jsonify({"status": "ok"})
 
 # ========================================
@@ -149,15 +147,13 @@ def webhook():
 # ========================================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8080))
 
     if WEBHOOK_URL:
-        async def set_webhook():
-            await app_telegram.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
-            print(f"Webhook diset ke: {WEBHOOK_URL}/webhook")
-        asyncio.run(set_webhook())
-    else:
-        print("WEBHOOK_URL tidak diset.")
+        loop.run_until_complete(
+            app_telegram.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+        )
+        print(f"Webhook diset ke: {WEBHOOK_URL}/webhook")
 
     print(f"Server jalan di port {port}")
     flask_app.run(host="0.0.0.0", port=port)
