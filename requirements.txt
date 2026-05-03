@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 python-telegram-bot==20.7
+=======
+python-telegram-bot==20.7
+>>>>>>> dc44b0d (fix bot Railway)
 groq
