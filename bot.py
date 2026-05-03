@@ -39,9 +39,7 @@ MAX_HISTORY = 10
 # VALIDASI
 # ========================================
 
-print("DEBUG TOKEN:", repr(os.environ.get("TELEGRAM_TOKEN")))
-print("DEBUG GROQ:", repr(os.environ.get("GROQ_API_KEY")))
-print("ALL ENV:", {k: v for k, v in os.environ.items() if "TOKEN" in k or "GROQ" in k})
+
 
 if not TELEGRAM_TOKEN:
     raise RuntimeError("TELEGRAM_TOKEN tidak ditemukan! Set di Railway Variables.")
