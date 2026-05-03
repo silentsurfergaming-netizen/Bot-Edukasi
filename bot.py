@@ -135,22 +135,6 @@ def webhook():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        update = Update.de_json(data, app_telegram.bot)
-        loop.run_until_complete(app_telegram.process_update(update))
-    finally:
-        loop.close()
-    return jsonify({"status": "ok"})
-
-# ========================================
-# RUN
-# ========================================
-
-@flask_app.route("/webhook", methods=["POST"])
-def webhook():
-    data = request.get_json(force=True)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
         async def process():
             await app_telegram.initialize()
             update = Update.de_json(data, app_telegram.bot)
@@ -159,3 +143,21 @@ def webhook():
     finally:
         loop.close()
     return jsonify({"status": "ok"})
+
+# ========================================
+# RUN
+# ========================================
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+
+    if WEBHOOK_URL:
+        async def set_webhook():
+            await app_telegram.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+            print(f"Webhook diset ke: {WEBHOOK_URL}/webhook")
+        asyncio.run(set_webhook())
+    else:
+        print("WEBHOOK_URL tidak diset.")
+
+    print(f"Server jalan di port {port}")
+    flask_app.run(host="0.0.0.0", port=port)
